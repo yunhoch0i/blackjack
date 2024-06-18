@@ -1,5 +1,6 @@
 #pragma once
 #include "player.h"
+#include "constants.h"  // Card 클래스를 정의한 파일을 포함합니다
 #include <vector>
 #include <algorithm>
 
@@ -22,7 +23,7 @@ private:
     double calculateProbabilityOfLowCard() {
         int lowCardCount = 0;
         for (const auto& card : deck) {
-            if (card.getValue() <= 4) {
+            if (card.getValue() <= 4) {  // Assuming card.getValue() returns int
                 ++lowCardCount;
             }
         }
@@ -35,7 +36,7 @@ public:
         myCardValue = 0;
     }
 
-    Action checkAction() override {
+    virtual Action checkAction() override {
         double probabilityOfLowCard = calculateProbabilityOfLowCard();
         if (myCardValue < 17 && probabilityOfLowCard >= 0.5) {
             return Action::HIT;
@@ -43,41 +44,41 @@ public:
         return Action::STAND;
     }
 
-    string getName() override {
+    virtual string getName() override {
         return "yunho";
     }
 
-    void notifyDealerCard(Card card) override {
-        auto it = std::find(deck.begin(), deck.end(), card);
+    virtual void notifyDealerCard(Card card) override {
+        auto it = std::find_if(deck.begin(), deck.end(), [&card](const Card& c) { return c.getValue() == card.getValue(); });
         if (it != deck.end()) {
             deck.erase(it);
         }
     }
 
-    void notifyOtherPlayerCard(Card card) override {
-        auto it = std::find(deck.begin(), deck.end(), card);
+    virtual void notifyOtherPlayerCard(Card card) override {
+        auto it = std::find_if(deck.begin(), deck.end(), [&card](const Card& c) { return c.getValue() == card.getValue(); });
         if (it != deck.end()) {
             deck.erase(it);
         }
     }
 
-    void notifyMyCard(Card card) override {
+    virtual void notifyMyCard(Card card) override {
         if (card.getValue() > 10) {
             myCardValue += 10;
         } else {
             myCardValue += card.getValue();
         }
-        auto it = std::find(deck.begin(), deck.end(), card);
+        auto it = std::find_if(deck.begin(), deck.end(), [&card](const Card& c) { return c.getValue() == card.getValue(); });
         if (it != deck.end()) {
             deck.erase(it);
         }
     }
 
-    void notifyCardReset(int cardDeck) override {
+    virtual void notifyCardReset(int cardDeck) override {
         initializeDeck();
     }
 
-    void notifyCompletedRound() override {
+    virtual void notifyCompletedRound() override {
         myCardValue = 0;
     }
 };
