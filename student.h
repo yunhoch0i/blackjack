@@ -1,103 +1,83 @@
 #pragma once
 #include "player.h"
-#include "constants.h"
 #include <vector>
 #include <algorithm>
-#include <numeric>
 
 class Student : public Player {
 private:
     string name = "yunhochoi";
     int myCardValue;
-    int opponentCardValue;
-    std::vector<int> deckCounts;
+    std::vector<Card> deck;
 
-    void initializeDeckCounts() {
-        deckCounts = std::vector<int>(13, 4); // 각 카드(1~13) 4개씩 초기화
-    }
-
-    double calculateProbability(int threshold) {
-        int totalCards = std::accumulate(deckCounts.begin(), deckCounts.end(), 0);
-        int favorableCards = 0;
-        for (int i = 0; i < 13; ++i) {
-            if ((i + 1) <= threshold) {
-                favorableCards += deckCounts[i];
+    void initializeDeck() {
+        deck.clear();
+        // Assuming a standard deck of 52 cards
+        for (int i = 1; i <= 13; ++i) { // 1 is Ace, 11 is Jack, 12 is Queen, 13 is King
+            for (int j = 0; j < 4; ++j) { // 4 suits
+                deck.push_back(Card(i));
             }
         }
-        return static_cast<double>(favorableCards) / totalCards;
     }
 
-    bool shouldHit(int threshold) {
-        double probability = calculateProbability(threshold);
-        return probability >= 0.5;
-    }
-
-    bool needsToTakeRisk() {
-        return myCardValue < opponentCardValue;
+    double calculateProbabilityOfLowCard() {
+        int lowCardCount = 0;
+        for (const auto& card : deck) {
+            if (card.getValue() <= 4) {
+                ++lowCardCount;
+            }
+        }
+        return static_cast<double>(lowCardCount) / deck.size();
     }
 
 public:
     Student() {
+        initializeDeck();
         myCardValue = 0;
-        opponentCardValue = 0;
-        initializeDeckCounts();
     }
 
-    Action checkAction() {
-        if (needsToTakeRisk()) {
+    Action checkAction() override {
+        double probabilityOfLowCard = calculateProbabilityOfLowCard();
+        if (myCardValue < 17 && probabilityOfLowCard >= 0.5) {
             return Action::HIT;
         }
-        
-        if (myCardValue >= 20) {
-            return Action::STAND;
-        }
-        if (myCardValue >= 15 && myCardValue <= 19) {
-            if (shouldHit(myCardValue - 15 + 1)) {
-                return Action::HIT;
-            }
-            return Action::STAND;
-        }
-        return Action::HIT;
+        return Action::STAND;
     }
 
-    string getName() {
+    string getName() override {
         return "yunho";
     }
 
-    void notifyDealerCard(Card card) {
-        int cardValue = card.getValue();
-        if (cardValue > 0 && cardValue <= 13) {
-            deckCounts[cardValue - 1]--;
+    void notifyDealerCard(Card card) override {
+        auto it = std::find(deck.begin(), deck.end(), card);
+        if (it != deck.end()) {
+            deck.erase(it);
         }
     }
 
-    void notifyOtherPlayerCard(Card card) {
-        int cardValue = card.getValue();
-        if (cardValue > 0 && cardValue <= 13) {
-            deckCounts[cardValue - 1]--;
-            opponentCardValue += cardValue > 10 ? 10 : cardValue;
+    void notifyOtherPlayerCard(Card card) override {
+        auto it = std::find(deck.begin(), deck.end(), card);
+        if (it != deck.end()) {
+            deck.erase(it);
         }
     }
 
-    void notifyMyCard(Card card) {
-        int cardValue = card.getValue();
-        if (cardValue > 0 && cardValue <= 13) {
-            if (cardValue > 10) myCardValue += 10;
-            else myCardValue += cardValue;
-            deckCounts[cardValue - 1]--;
+    void notifyMyCard(Card card) override {
+        if (card.getValue() > 10) {
+            myCardValue += 10;
+        } else {
+            myCardValue += card.getValue();
+        }
+        auto it = std::find(deck.begin(), deck.end(), card);
+        if (it != deck.end()) {
+            deck.erase(it);
         }
     }
 
-    void notifyCardReset(int cardDeck) {
+    void notifyCardReset(int cardDeck) override {
+        initializeDeck();
+    }
+
+    void notifyCompletedRound() override {
         myCardValue = 0;
-        opponentCardValue = 0;
-        initializeDeckCounts();
-    }
-
-    void notifyCompletedRound() {
-        myCardValue = 0;
-        opponentCardValue = 0;
-        initializeDeckCounts();
     }
 };
-
