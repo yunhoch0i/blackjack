@@ -1,60 +1,103 @@
 #pragma once
 #include "player.h"
+#include "constants.h"
+#include <vector>
+#include <algorithm>
+#include <numeric>
 
-//¾Æ·¡ÀÇ ÄÚµå¸¸ ¼öÁ¤ÇÒ°Í.
 class Student : public Player {
 private:
-	string name = "2024000000 È«±æµ¿";
+    string name = "yunhochoi";
+    int myCardValue;
+    int opponentCardValue;
+    std::vector<int> deckCounts;
+
+    void initializeDeckCounts() {
+        deckCounts = std::vector<int>(13, 4); // ê° ì¹´ë“œ(1~13) 4ê°œì”© ì´ˆê¸°í™”
+    }
+
+    double calculateProbability(int threshold) {
+        int totalCards = std::accumulate(deckCounts.begin(), deckCounts.end(), 0);
+        int favorableCards = 0;
+        for (int i = 0; i < 13; ++i) {
+            if ((i + 1) <= threshold) {
+                favorableCards += deckCounts[i];
+            }
+        }
+        return static_cast<double>(favorableCards) / totalCards;
+    }
+
+    bool shouldHit(int threshold) {
+        double probability = calculateProbability(threshold);
+        return probability >= 0.5;
+    }
+
+    bool needsToTakeRisk() {
+        return myCardValue < opponentCardValue;
+    }
+
 public:
-	/*
-	* ¾î¶² Çàµ¿À» ÇÒÁö ¹İÈ¯ÇÏ´Â ¸Å¼Òµå
-	* HIT = Ä«µå¸¦ °è¼Ó ¹Ş°Ú´Ù.
-	* STAND = Ä«µå ¹Ş±â¸¦ ¸ØÃß°Ú´Ù.
-	*/
-	Action checkAction() {
-		return Action::STAND;
-	}
-	
-	/*
-	* ÃÖÁ¾ °á°ú Ãâ·Â¿¡ »ç¿ëÇÒ ÀÌ¸§À» ¹İÈ¯ÇÏ´Â ¸Å¼Òµå
-	*/
-	string getName() {
-		return name;
-	}
+    Student() {
+        myCardValue = 0;
+        opponentCardValue = 0;
+        initializeDeckCounts();
+    }
 
-	/*
-	* µô·¯°¡ ¹ŞÀº Ä«µå°¡ ¹ºÁö ¾Ë ¼ö ÀÖ´Â ¸Å¼Òµå
-	*/
-	void notifyDealerCard(Card card) {
+    Action checkAction() {
+        if (needsToTakeRisk()) {
+            return Action::HIT;
+        }
+        
+        if (myCardValue >= 20) {
+            return Action::STAND;
+        }
+        if (myCardValue >= 15 && myCardValue <= 19) {
+            if (shouldHit(myCardValue - 15 + 1)) {
+                return Action::HIT;
+            }
+            return Action::STAND;
+        }
+        return Action::HIT;
+    }
 
-	}
+    string getName() {
+        return "yunho";
+    }
 
-	/*
-	* ´Ù¸¥ ÇÃ·¹ÀÌ¾î°¡ ¹ŞÀº Ä«µå°¡ ¹ºÁö ¾Ë ¼ö ÀÖ´Â ¸Å¼Òµå
-	*/
-	void notifyOtherPlayerCard(Card card) {
+    void notifyDealerCard(Card card) {
+        int cardValue = card.getValue();
+        if (cardValue > 0 && cardValue <= 13) {
+            deckCounts[cardValue - 1]--;
+        }
+    }
 
-	}
+    void notifyOtherPlayerCard(Card card) {
+        int cardValue = card.getValue();
+        if (cardValue > 0 && cardValue <= 13) {
+            deckCounts[cardValue - 1]--;
+            opponentCardValue += cardValue > 10 ? 10 : cardValue;
+        }
+    }
 
-	/*
-	* ³»°¡ ¹ŞÀº Ä«µå°¡ ¹ºÁö ¾Ë ¼ö ÀÖ´Â ¸Å¼Òµå
-	*/
-	void notifyMyCard(Card card) {
+    void notifyMyCard(Card card) {
+        int cardValue = card.getValue();
+        if (cardValue > 0 && cardValue <= 13) {
+            if (cardValue > 10) myCardValue += 10;
+            else myCardValue += cardValue;
+            deckCounts[cardValue - 1]--;
+        }
+    }
 
-	}
+    void notifyCardReset(int cardDeck) {
+        myCardValue = 0;
+        opponentCardValue = 0;
+        initializeDeckCounts();
+    }
 
-	/*
-	* µô·¯°¡ »ç¿ëÇÏ´Â Ä«µå ´õ¹Ì¸¦ »õ·Î ¸¸µé¾î³¾¶§
-	* ¸î°³ÀÇ ÇÃ·¹À× Ä«µå·Î ¸¸µé¾îÁ³´ÂÁö ¾Ë·ÁÁÖ´Â ¸Å¼Òµå
-	*/
-	void notifyCardReset(int cardDeck) {
-
-	}
-
-	/*
-	* ÇÑ¹øÀÇ ¶ó¿îµå°¡ ³¡³µÀ½À» ¾Ë·ÁÁÖ´Â ¸Å¼Òµå
-	*/
-	void notifyCompletedRound() {
-		
-	}
+    void notifyCompletedRound() {
+        myCardValue = 0;
+        opponentCardValue = 0;
+        initializeDeckCounts();
+    }
 };
+
